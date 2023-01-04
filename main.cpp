@@ -7,12 +7,16 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vector>
 #include <numeric>
+#include <algorithm>
+#include <array>
 
 #include "common/Texture.h"
 #include "common/shader.h"
 #include "common/VAO.h"
 #include "common/EBO.h"
 #include "common/VBO.h"
+
+#include "block.h"
 
 // callbacks
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -29,6 +33,15 @@ int main(int argc, char *argv[]) {
     // time actions independent of fps
     float deltaTime { 0.0f };
     float lastFrame { 0.0f };
+
+    std::vector<std::array<int, 2>> iblock {
+        {0, 0},
+        {0, 1},
+        {0, 2},
+        {0, 3},
+    };
+
+    Block din(iblock);
 
     // start glfw and create window etc.
     glfwInit();
@@ -97,7 +110,7 @@ int main(int argc, char *argv[]) {
 
     // move black tile every n seconds 
 
-    float tps { 1.0f };
+    float tps { 2.0f };
     float counter { tps };
 
     // main loop
@@ -106,14 +119,7 @@ int main(int argc, char *argv[]) {
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        if(counter > 0) {
-            counter -= 1.0f * deltaTime;
-        } else if(blocY < boardH) {
-            blocY += 1;
-            counter = tps;
-        } else {
-            counter = tps;
-        }
+        din.move(tps, deltaTime, boardH);
 
         if(blocY == boardH)
             blocY = 0;
@@ -133,7 +139,8 @@ int main(int argc, char *argv[]) {
         for(int xInd {}; xInd<boardW; ++xInd) {
             for(int yInd {}; yInd<boardH; ++yInd) {
                 // std::cout << xInd << 'x' << yInd << "- " << "x: " << x << ", y: " << y << '\n';
-                if(blocX == xInd && blocY == yInd)
+                std::array<int, 2> ind { din.x - xInd, din.y - yInd };
+                if(std::find(din.shape.begin(), din.shape.end(), ind) != din.shape.end())
                     color = black;
                 else
                     color = white;

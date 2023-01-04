@@ -1,4 +1,4 @@
-main: obj/main.o obj/glad.o obj/EBO.o obj/Texture.o obj/shader.o obj/VAO.o obj/VBO.o obj/stb.o
+main: obj/main.o obj/glad.o obj/EBO.o obj/Texture.o obj/shader.o obj/VAO.o obj/VBO.o obj/stb.o obj/block.o
 	g++ --std=c++20 $(wildcard obj/*.o) -o main -lglfw -Icommon/include -lGL
 
 obj/main.o: main.cpp
@@ -32,3 +32,7 @@ obj/VBO.o: common/VBO.cpp
 obj/stb.o: common/stb.cpp
 	g++ --std=c++20 -c common/stb.cpp -Icommon/include
 	mv stb.o obj/
+
+obj/block.o: block.cpp
+	g++ --std=c++20 -c block.cpp
+	mv block.o obj/
