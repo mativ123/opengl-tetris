@@ -184,18 +184,9 @@ void key_callback(GLFWwindow *window, int key, int scancode, int action, int mod
             case GLFW_KEY_F3:
                 glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
                 break;
-            case GLFW_KEY_RIGHT:
-                if(blocX > 0)
-                    --blocX;
-                break;
-            case GLFW_KEY_LEFT:
-                if(blocX < boardW - 1)
-                    ++blocX;
-                break;
             default:
                 std::cout << glfwGetKeyName(key, scancode) << " pressed!\n";
                 break;
         }
     }
-
 }
