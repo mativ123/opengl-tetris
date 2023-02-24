@@ -11,6 +11,7 @@ class Key {
         Key();
 
         bool check(int key);
+        bool checkDown(int key);
         void press(int key);
         void release(int key);
 };

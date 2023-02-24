@@ -3,11 +3,13 @@
 class Block {
     private:
         float counter { 1.0f };
+        int boardW;
+        int boardH;
+        int blockH;
 
     public:
-        Block(std::vector<std::array<int, 2>> preset);
-        int move(float rate, float deltaTime, int h);
-        void keys(GLFWwindow *window, int key, int scancode, int action, int mods);
+        Block(std::vector<std::array<int, 2>> preset, int h, int boardW, int boardH);
+        int move(float rate, float deltaTime, int h, std::vector<std::array<int, 2>> *there);
 
         std::vector<std::array<int, 2>> shape {};
         int x {};

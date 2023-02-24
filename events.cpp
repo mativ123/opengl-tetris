@@ -15,6 +15,14 @@ bool Key::check(int key) {
     return states[key];
 }
 
+bool Key::checkDown(int key) {
+    if(states[key]) {
+        states[key] = false;
+        return true;
+    }
+    return false;
+}
+
 void Key::press(int key) {
     states[key] = true;
 };

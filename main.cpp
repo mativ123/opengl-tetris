@@ -44,7 +44,9 @@ int main(int argc, char *argv[]) {
         {0, 3},
     };
 
-    Block din(iblock);
+    Block din(iblock, 4, boardW, boardH);
+
+    std::vector<std::array<int, 2>> there;
 
     // start glfw and create window etc.
     glfwInit();
@@ -108,6 +110,7 @@ int main(int argc, char *argv[]) {
 
     glm::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
     glm::vec4 black(0.0f, 0.0f, 0.0f, 1.0f);
+    glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
 
     glm::vec4 color { white };
 
@@ -118,15 +121,11 @@ int main(int argc, char *argv[]) {
 
     // main loop
     while(!glfwWindowShouldClose(window)) {
-        if(events.check(events.left)) {
-            std::cout << "left was pressed and the code worked (lets goooo)\n";
-            events.release(events.left);
-        }
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        din.move(tps, deltaTime, boardH);
+        din.move(tps, deltaTime, boardH, &there);
 
         if(blocY == boardH)
             blocY = 0;
@@ -143,14 +142,26 @@ int main(int argc, char *argv[]) {
         x = 1.0f;
         y = 1.0f;
 
+        if(events.checkDown(events.left) && din.x < boardW - 1) {
+            din.x += 1;
+        }
+
+        if(events.checkDown(events.right) && din.x > 0) {
+            din.x -= 1;
+        }
+
         for(int xInd {}; xInd<boardW; ++xInd) {
             for(int yInd {}; yInd<boardH; ++yInd) {
-                // std::cout << xInd << 'x' << yInd << "- " << "x: " << x << ", y: " << y << '\n';
+                std::cout << xInd << 'x' << yInd << "- " << "x: " << x << ", y: " << y << '\n';
                 std::array<int, 2> ind { din.x - xInd, din.y - yInd };
+                std::array<int, 2> pos = { xInd, yInd };
                 if(std::find(din.shape.begin(), din.shape.end(), ind) != din.shape.end())
                     color = black;
                 else
                     color = white;
+
+                if(std::find(there.begin(), there.end(), pos) != there.end())
+                    color = red;
 
                 glm::mat4 transform = glm::mat4(1.0f);
                 transform = glm::translate(transform, glm::vec3(x - w, y - h, 0.0f));
