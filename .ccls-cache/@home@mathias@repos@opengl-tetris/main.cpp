@@ -16,37 +16,34 @@
 #include "common/EBO.h"
 #include "common/VBO.h"
 
-#include "block.h"
-#include "events.h"
+#include "objects.h"
 
 // callbacks
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
+bool CheckInput(int key, int action);
 
-// board dimensoins
-int boardW { 10 };
-int boardH { 20 };
+const unsigned int boardW { 10 };
+const unsigned int  boardH = { 20 };
 
-// pos of black tile
-int blocX {}, blocY{};
+float tileW {};
+float tileH {};
 
-Key events;
+int BlockGravity(int pos);
+
+void CreateColumn(std::vector<Tile>& column);
+
+std::vector<Event> events {};
+std::vector<Event> eventsBuffer {};
+
+Tile tiles[boardW][boardH] {};
 
 int main(int argc, char *argv[]) {
+    unsigned int pos { boardH - 1 };
+
     // time actions independent of fps
     float deltaTime { 0.0f };
     float lastFrame { 0.0f };
-
-    std::vector<std::array<int, 2>> iblock {
-        {0, 0},
-        {0, 1},
-        {0, 2},
-        {0, 3},
-    };
-
-    Block din(iblock, 4, boardW, boardH);
-
-    std::vector<std::array<int, 2>> there;
 
     // start glfw and create window etc.
     glfwInit();
@@ -54,7 +51,7 @@ int main(int argc, char *argv[]) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    int windowW { 500 };
+    int windowW { 1000 };
     int windowH { 1000 };
 
     GLFWwindow *window = glfwCreateWindow(windowW, windowH, "tetros", NULL, NULL);
@@ -71,7 +68,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-    glViewport(0, 0, 500, 1000);
+    glViewport(0, 0, windowW, windowH);
 
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetKeyCallback(window, key_callback);
@@ -102,33 +99,35 @@ int main(int argc, char *argv[]) {
     BLOCZ.Unbind();
     VBO1.Unbind();
 
-    // for drawing tiles
-    float x { 1.0f }, y { 1.0f};
-    float w { 2.0f / (float)boardW };
-    float h { 2.0f / (float)boardH };
+    glm::mat4 transform = glm::mat4(1.0f);
 
+    unsigned int t_windowW { 0 };
+    unsigned int t_windowH { 0 };
+    
+    float counter { 0.0f };
 
-    glm::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
-    glm::vec4 black(0.0f, 0.0f, 0.0f, 1.0f);
-    glm::vec4 red(1.0f, 0.0f, 0.0f, 1.0f);
-
-    glm::vec4 color { white };
-
-    // move black tile every n seconds 
-
-    float tps { 2.0f };
-    float counter { tps };
-
-    // main loop
     while(!glfwWindowShouldClose(window)) {
+        eventsBuffer = events;
+
         float currentFrame = glfwGetTime();
         deltaTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
-        din.move(tps, deltaTime, boardH, &there);
+        std::cout << "fps: " << 1000 / deltaTime << '\n';
 
-        if(blocY == boardH)
-            blocY = 0;
+        counter += deltaTime;
+
+        if(counter > 1) {
+            pos = BlockGravity(pos);
+            counter = 0;
+        }
+
+        if(CheckInput(GLFW_KEY_F2, GLFW_PRESS)) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        }
+        if(CheckInput(GLFW_KEY_F3, GLFW_PRESS)) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
 
         glClearColor(0.26f, 0.53f, 0.96f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -139,44 +138,39 @@ int main(int argc, char *argv[]) {
 
         glfwGetWindowSize(window, &windowW, &windowH);
 
-        x = 1.0f;
-        y = 1.0f;
+        // normalized dimensions of a tile
+        tileW = (float)(windowW / boardW) / windowW;
+        tileH = (float)(windowH / boardH) / windowH;
+        
+        for(int x {}; x<boardW; ++x) {
+            for(int y {}; y<boardH; ++y) {
+                if(tiles[x][y].full) {
+                    shaderPogram.setVec4f("color", 1, glm::value_ptr(tiles[x][y].fg));
+                } else {
+                    shaderPogram.setVec4f("color", 1, glm::value_ptr(tiles[x][y].bg));
+                }
+                transform = glm::mat4(1.0f);
+                // offset tile by half a tile width
+                transform = glm::translate(transform, glm::vec3(tileW, tileH, 0.0f));
 
-        if(events.checkDown(events.left) && din.x < boardW - 1) {
-            din.x += 1;
-        }
-
-        if(events.checkDown(events.right) && din.x > 0) {
-            din.x -= 1;
-        }
-
-        for(int xInd {}; xInd<boardW; ++xInd) {
-            for(int yInd {}; yInd<boardH; ++yInd) {
-                std::cout << xInd << 'x' << yInd << "- " << "x: " << x << ", y: " << y << '\n';
-                std::array<int, 2> ind { din.x - xInd, din.y - yInd };
-                std::array<int, 2> pos = { xInd, yInd };
-                if(std::find(din.shape.begin(), din.shape.end(), ind) != din.shape.end())
-                    color = black;
-                else
-                    color = white;
-
-                if(std::find(there.begin(), there.end(), pos) != there.end())
-                    color = red;
-
-                glm::mat4 transform = glm::mat4(1.0f);
-                transform = glm::translate(transform, glm::vec3(x - w, y - h, 0.0f));
-                transform = glm::scale(transform, glm::vec3(w, h, 1.0f));
+                // multiply by 2 to tranlate the correct distance
+                transform = glm::translate(transform, glm::vec3(tileW * 2 * (x - (float)boardW / 2), tileH * 2 * (y - (float)boardH / 2), 0.0f));
+                transform = glm::scale(transform, glm::vec3(tileW, tileH, 1.0f));
                 shaderPogram.setMat4f("transform", 1, glm::value_ptr(transform));
-                shaderPogram.setVec4f("color", 1, glm::value_ptr(color));
+
                 glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-                y -= h;
             }
-            x -= w;
-            y = 1.0f;
+            transform = glm::translate(transform, glm::vec3(2.0f, 0.0f, 0.0f));
         }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        if(events.size() == eventsBuffer.size() && !events.empty()) {
+            events.clear();
+        }
+
+        eventsBuffer.clear();
     }
 
     // cleanup
@@ -194,36 +188,28 @@ void framebuffer_size_callback(GLFWwindow *window, int width, int height) {
 }
 
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods) {
-    if(action == GLFW_PRESS) {
-        switch(key) {
-            case GLFW_KEY_F2:
-                glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-                break;
-            case GLFW_KEY_F3:
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                break;
-            case GLFW_KEY_LEFT:
-                events.press(events.left);
-                break;
-            case GLFW_KEY_RIGHT:
-                events.press(events.right);
-                break;
-            default:
-                std::cout << glfwGetKeyName(key, scancode) << " pressed!\n";
-                break;
-        }
+    Event tmp = { key, action };
+    events.push_back(tmp);
+}
+
+bool CheckInput(int key, int action) {
+    for(Event event : events) {
+        return event.key == key && event.action == action;
     }
-    if(action == GLFW_RELEASE) {
-        switch(key) {
-            case GLFW_KEY_LEFT:
-                events.release(0);
-                break;
-            case GLFW_KEY_RIGHT:
-                events.release(1);
-                break;
-            default:
-                std::cout << glfwGetKeyName(key, scancode) << " released!\n";
-                break;
-        }
-    }
+
+    return false;
+}
+
+int BlockGravity(int pos) {
+    // reset color of last pos
+    if (pos + 1 < boardH)
+        tiles[5][pos + 1].full = false;
+
+    // loop position
+    if(pos < 0)
+        pos = boardH - 1;
+
+    tiles[5][pos].full = true;
+
+    return pos - 1;
 }

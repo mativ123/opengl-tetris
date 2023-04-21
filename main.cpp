@@ -16,6 +16,8 @@
 #include "common/EBO.h"
 #include "common/VBO.h"
 
+#include "objects.h"
+
 // callbacks
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void key_callback(GLFWwindow *window, int key, int scancode, int action, int mods);
@@ -26,19 +28,6 @@ const unsigned int  boardH = { 20 };
 
 float tileW {};
 float tileH {};
-
-struct Event {
-    int key;
-    int action;
-};
-
-struct Tile {
-    bool full { false };
-    // color if the tile is not full
-    glm::vec4 bg { 0.0f, 0.0f, 0.0f, 1.0f }; // background
-    // color if tile is full
-    glm::vec4 fg { 1.0f, 1.0f, 1.0f, 1.0f }; // foreground
-};
 
 int BlockGravity(int pos);
 
